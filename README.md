@@ -1,9 +1,6 @@
 # Project-NLP
 
-Example project for the following NLP tasks:
+Example NLP project for the following demos:
 
-* Text classification
+* Text classification --> [Explore project in the app](https://app.neptune.ai/showcase/project-text-classification)
 * Text summarization
-* Keyword extraction
-
-[See example in Neptune](https://app.neptune.ai/o/showcase/org/project-nlp/experiments?split=tbl&dash=charts)
