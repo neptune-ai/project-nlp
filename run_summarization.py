@@ -5,15 +5,17 @@
 Fine-tuning the library models for sequence to sequence.
 """
 
+import io
+
+import evaluate
+import neptune.new as neptune
 import nltk  # Here to have a nice missing dependency error message early on
 import numpy as np
-from datasets import load_dataset
-
-import neptune.new as neptune
-from neptune.new.types import File
-import io
+import pandas as pd
 import transformers
+from datasets import load_dataset
 from filelock import FileLock
+from neptune.new.types import File
 from transformers import (
     AutoConfig,
     AutoModelForSeq2SeqLM,
@@ -28,15 +30,11 @@ from transformers import (
     Seq2SeqTrainingArguments,
     set_seed,
 )
-from transformers.utils import (
-    check_min_version,
-    is_offline_mode,
-)
+from transformers.utils import check_min_version, is_offline_mode
 from transformers.utils.versions import require_version
-from arg_parsers import ModelArguments, DataTrainingArguments
+
+from arg_parsers import DataTrainingArguments, ModelArguments
 from utils import get_dataset
-import evaluate
-import pandas as pd
 
 metric = evaluate.load("rouge")
 
@@ -119,17 +117,31 @@ class EvalLogger:
 
             if idx in self.examples_df:
                 df = self.examples_df[idx]
-                new_row = pd.DataFrame({'eval_step': [self.cnt], 'summarized prediction': [pred], 'metric': [result['rouge1']]})
+                new_row = pd.DataFrame(
+                    {
+                        "eval_step": [self.cnt],
+                        "summarized prediction": [pred],
+                        "metric": [result["rouge1"]],
+                    }
+                )
                 df = pd.concat([df, new_row])
                 df.reset_index(drop=True)
                 self.examples_df[idx] = df
             else:
-                df = pd.DataFrame({'eval_step': [self.cnt], 'summarized prediction': [pred], 'metric': [result['rouge1']]})
+                df = pd.DataFrame(
+                    {
+                        "eval_step": [self.cnt],
+                        "summarized prediction": [pred],
+                        "metric": [result["rouge1"]],
+                    }
+                )
                 self.examples_df[idx] = df
 
             buffer = io.StringIO()
             self.examples_df[idx].to_csv(buffer)
-            self.run[f"finetuning/eval_predictions/example_{idx}/predictions"].upload(File.from_stream(buffer, extension='csv'))
+            self.run[f"finetuning/eval_predictions/example_{idx}/predictions"].upload(
+                File.from_stream(buffer, extension="csv")
+            )
 
         self.cnt += 1
         return {}
