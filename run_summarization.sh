@@ -1,0 +1,16 @@
+python run_summarization.py \
+    --model_name_or_path t5-small \
+    --dataset_name samsum \
+    --dataset_config samsum \
+    --report_to "none" \
+    --output_dir /tmp/tst-summarization \
+    --per_device_train_batch_size=16 \
+    --per_device_eval_batch_size=2 \
+    --overwrite_output_dir \
+    --load_best_model_at_end true \
+    --evaluation_strategy "steps" \
+    --save_strategy "steps" \
+    --eval_steps 500 \
+    --eval_accumulation_steps 100 \
+    --max_eval_samples 50 \
+    --include_inputs_for_metrics true
