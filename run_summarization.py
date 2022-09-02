@@ -141,7 +141,7 @@ class EvalLogger:
 
             # Upload the dataframe as csv
             buffer = io.StringIO()
-            self.examples_df[idx].to_csv(buffer)
+            self.examples_df[idx].to_csv(buffer, index=False)
             self.run[f"finetuning/eval_predictions/example_{idx}/predictions"].upload(
                 File.from_stream(buffer, extension="csv")
             )
