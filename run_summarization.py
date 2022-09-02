@@ -116,6 +116,7 @@ class EvalLogger:
                 self.run[f"finetuning/eval_predictions/example_{idx}"] = example_dict
 
             if idx in self.examples_df:
+                # Append the new prediction to existing df
                 df = self.examples_df[idx]
                 new_row = pd.DataFrame(
                     {
@@ -128,6 +129,7 @@ class EvalLogger:
                 df.reset_index(drop=True)
                 self.examples_df[idx] = df
             else:
+                # Create a new df for the example
                 df = pd.DataFrame(
                     {
                         "eval_step": [self.cnt],
@@ -137,6 +139,7 @@ class EvalLogger:
                 )
                 self.examples_df[idx] = df
 
+            # Upload the dataframe as csv
             buffer = io.StringIO()
             self.examples_df[idx].to_csv(buffer)
             self.run[f"finetuning/eval_predictions/example_{idx}/predictions"].upload(
