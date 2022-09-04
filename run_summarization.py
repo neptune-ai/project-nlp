@@ -151,14 +151,16 @@ class EvalLogger:
 
 
 def main():
+    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments))
+    model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+
     # (neptune) Initialize Neptune run
     run = neptune.init_run()
 
     # (neptune) Track S3 data
-    run["data"].track_files("s3://neptune-examples/data/samsum/data/")
-
-    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments))
-    model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+    run["data"].track_files(data_args.s3_path)
+    run.wait()
+    run["data"].download("data/")
 
     # Set seed before initializing model.
     set_seed(training_args.seed)
