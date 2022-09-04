@@ -1,6 +1,6 @@
 # File inspired from
 # https://github.com/huggingface/transformers/blob/21f6f58721dd9154357576be6de54eefef1f1818/examples/pytorch/summarization/run_summarization.py
-
+# Date Accessed: 31st August 2022
 """
 Fine-tuning the library models for sequence to sequence.
 """
@@ -139,7 +139,7 @@ class EvalLogger:
                 )
                 self.examples_df[idx] = df
 
-            # Upload the dataframe as csv
+            # (neptune) Upload the dataframe as csv
             buffer = io.StringIO()
             self.examples_df[idx].to_csv(buffer, index=False)
             self.run[f"finetuning/eval_predictions/example_{idx}/predictions"].upload(
@@ -151,10 +151,10 @@ class EvalLogger:
 
 
 def main():
-    # Initialize Neptune run
+    # (neptune) Initialize Neptune run
     run = neptune.init_run()
 
-    # Track S3 data
+    # (neptune) Track S3 data
     run["data"].track_files("s3://neptune-examples/data/samsum/data/")
 
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments))
@@ -232,10 +232,10 @@ def main():
         pad_to_multiple_of=8 if training_args.fp16 else None,
     )
 
-    # NeptuneCallback takes care of logging trainer_params, model_params, etc
+    # (neptune) NeptuneCallback takes care of logging trainer_params, model_params, etc
     neptune_callback = transformers.integrations.NeptuneCallback(run=run, log_checkpoints="best")
 
-    # Helper to log predictions of the evaluation data.
+    # (neptune) Helper to log predictions of the evaluation data.
     eval_logger = EvalLogger(run, tokenizer, data_args.ignore_pad_token_for_loss).log_at_eval
 
     # Initialize our Trainer
@@ -246,8 +246,8 @@ def main():
         eval_dataset=eval_dataset,
         tokenizer=tokenizer,
         data_collator=data_collator,
-        compute_metrics=eval_logger,
-        callbacks=[neptune_callback],
+        compute_metrics=eval_logger,  # (neptune) pass the eval logger to the trainer
+        callbacks=[neptune_callback],  # (neptune) Pass the callback to the trainer
     )
 
     # Training
