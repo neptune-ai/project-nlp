@@ -61,8 +61,10 @@ class DataTrainingArguments:
     Arguments pertaining to what data we are going to input our model for training and eval.
     """
 
+    s3_path: str = field(
+        metadata={"help": "S3 URI for the dataset files."},
+    )
     lang: Optional[str] = field(default=None, metadata={"help": "Language id for summarization."})
-
     dataset_name: Optional[str] = field(
         default=None,
         metadata={"help": "The name of the dataset to use (via the datasets library)."},
