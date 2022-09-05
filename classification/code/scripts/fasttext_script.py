@@ -281,7 +281,7 @@ run["study/sweep_id"] = sweep_id
 
 model = neptune.init_model(
     name="fasttext",
-    key="FTXTSC",
+    # key="FTXTSC", # Required only for new models
     project=f"{WORKSPACE_NAME}/{PROJECT_NAME}",
 )
 
