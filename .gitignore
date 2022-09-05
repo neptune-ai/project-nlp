@@ -128,11 +128,14 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# VSCode
+.vscode
+
 # Neptune
-**.neptune
+.neptune
 
 # Data
-**.txt
+**data/
 
 # Models
 **.bin
