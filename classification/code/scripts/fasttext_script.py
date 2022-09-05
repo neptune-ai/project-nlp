@@ -31,6 +31,7 @@ path = Path()
 
 N_JOBS = 1
 N_TRIALS = 10
+UPLOAD_SIZE_THRESHOLD = 100  # in MB
 
 # (neptune) Initialize a neptune project
 # [Read the docs](https://docs.neptune.ai/you-should-know/core-concepts#project)
@@ -206,12 +207,12 @@ def objective_with_logging(trial):
         "lr": trial.suggest_float("lr", 0.1, 1, step=0.1),
         "dim": trial.suggest_int("dim", 10, 1000, log=True),
         "ws": trial.suggest_int("ws", 1, 10),
-        "epoch": trial.suggest_int("epoch", 1, 100),
+        "epoch": trial.suggest_int("epoch", 10, 100),
         "minCount": trial.suggest_int("minCount", 1, 10),
         "wordNgrams": trial.suggest_int("wordNgrams", 1, 3),
         "loss": trial.suggest_categorical("loss", ["hs", "softmax", "ova"]),
-        "bucket": trial.suggest_int("bucket", 1000000, 6000000, log=True),
-        "lrUpdateRate": trial.suggest_int("lrUpdateRate", 1, 100, log=True),
+        "bucket": trial.suggest_int("bucket", 1000000, 3000000, log=True),
+        "lrUpdateRate": trial.suggest_int("lrUpdateRate", 1, 10),
         "t": trial.suggest_float("t", 0.00001, 0.1, log=True),
     }
 
@@ -280,8 +281,9 @@ run["study/sweep_id"] = sweep_id
 # [Read the docs](https://docs.neptune.ai/how-to-guides/model-registry)
 
 model = neptune.init_model(
-    name="fasttext",
-    # key="FTXTSC", # Required only for new models
+    model="TXTCLF-FTXT",  # Reinitializing existing model
+    # name="fasttext", # Required only for new models
+    # key="FTXT", # Required only for new models
     project=f"{WORKSPACE_NAME}/{PROJECT_NAME}",
 )
 
@@ -321,11 +323,21 @@ clf = fasttext.train_supervised(
 # (neptune) Upload serialized model to model registry
 # [Read the docs](https://docs.neptune.ai/how-to-guides/model-registry/creating-model-versions)
 
-MODEL_PATH = path.cwd().parent.parent.joinpath("models")
+MODEL_PATH = str(path.cwd().parent.parent.joinpath("models").joinpath("fasttext.bin"))
 
-clf.save_model(str(MODEL_PATH.joinpath("fasttext_script.bin")))
+if os.path.exists(MODEL_PATH):
+    os.remove(MODEL_PATH)
 
-model_version["serialized_model"].upload(str(MODEL_PATH.joinpath("fasttext_script.bin")))
+clf.save_model(MODEL_PATH)
+
+if os.path.getsize(MODEL_PATH) < 1024 * 1024 * UPLOAD_SIZE_THRESHOLD:  # 100 MB
+    print("Uploading serialized model")
+    model_version["serialized_model"].upload(MODEL_PATH)
+else:
+    print(
+        f"Model is larger than UPLOAD_SIZE_THRESHOLD ({UPLOAD_SIZE_THRESHOLD} MB). Tracking pointer to model file"
+    )
+    model_version["serialized_model"].track_files(os.path.relpath(MODEL_PATH))
 
 
 # (neptune) Log model properties to model_version
@@ -335,7 +347,7 @@ properties = {k: v for k, v in vars(clf).items() if k not in ["_words", "f"]}
 model_version["properties"] = properties
 
 
-# (neptune) Log parameters, metrics and debugging information to run
+# (neptune) Log parameters, metrics and debugging information to run and model version
 
 preds = [clf.predict(text)[0][0] for text in X_test.values]
 
@@ -348,9 +360,9 @@ precision, recall, f1_score, _ = precision_recall_fscore_support(
 
 print(f"Precision: {precision}\nRecall: {recall}\nF1-score: {f1_score}")
 
-run["test/metrics/precision"] = precision
-run["test/metrics/recall"] = recall
-run["test/metrics/f1_score"] = f1_score
+run["test/metrics/precision"] = model_version["metrics/precision"] = precision
+run["test/metrics/recall"] = model_version["metrics/recall"] = recall
+run["test/metrics/f1_score"] = model_version["metrics/f1_score"] = f1_score
 
 print(classification_report(y_test, preds, zero_division=0))
 
@@ -378,7 +390,6 @@ fig = go.Figure(
     ]
 )
 fig.update_layout(title="Actual vs Prediction", barmode="group")
-fig.show()
 
 run["test/debug/plots/prediction_distribution"].upload(fig)
 
