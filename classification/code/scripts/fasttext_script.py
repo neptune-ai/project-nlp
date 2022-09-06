@@ -7,6 +7,7 @@ import csv
 import os
 import re
 import uuid
+from datetime import datetime
 from io import StringIO
 from pathlib import Path
 
@@ -33,6 +34,7 @@ N_JOBS = 1
 N_TRIALS = 10
 UPLOAD_SIZE_THRESHOLD = 100  # in MB
 
+
 # (neptune) Initialize a neptune project
 # [Read the docs](https://docs.neptune.ai/you-should-know/core-concepts#project)
 
@@ -51,10 +53,10 @@ DATASET_PATH_S3 = "s3://neptune-examples/data/text-classification"
 
 project["data/files"].track_files(str(DATASET_PATH_S3))
 
-
 df_raw = pd.read_csv(f"{DATASET_PATH_S3}/legal_text_classification.csv")
 df_raw.dropna(subset=["case_text"], inplace=True)
 df_raw.drop_duplicates(subset="case_text", inplace=True)
+
 
 # (neptune) Log dataset sample
 # [Read the docs](https://docs.neptune.ai/you-should-know/what-can-you-log-and-display#files)
@@ -62,6 +64,7 @@ df_raw.drop_duplicates(subset="case_text", inplace=True)
 csv_buffer = StringIO()
 df_raw.sample(100).to_csv(csv_buffer, index=False)
 project["data/sample"].upload(File.from_stream(csv_buffer, extension="csv"))
+
 
 # (neptune) Log metadata plots
 # [Read the docs](https://docs.neptune.ai/you-should-know/what-can-you-log-and-display#images)
@@ -71,6 +74,7 @@ fig.update_xaxes(title="Case outcome")
 fig.update_yaxes(title="No. of cases")
 
 project["data/distribution"].upload(fig)
+
 
 # # Data processing
 
@@ -320,24 +324,26 @@ clf = fasttext.train_supervised(
     **study.best_params,
 )
 
+
 # (neptune) Upload serialized model to model registry
 # [Read the docs](https://docs.neptune.ai/how-to-guides/model-registry/creating-model-versions)
 
-MODEL_PATH = str(path.cwd().parent.parent.joinpath("models").joinpath("fasttext.bin"))
+MODEL_PATH = path.cwd().parent.parent.joinpath("models")
 
-if os.path.exists(MODEL_PATH):
-    os.remove(MODEL_PATH)
+if not os.path.exists(MODEL_PATH):
+    os.makedirs(MODEL_PATH)
 
-clf.save_model(MODEL_PATH)
+MODEL_NAME = str(MODEL_PATH.joinpath(f"fasttext_{datetime.now().strftime('%Y%m%d%H%M%S')}.bin"))
+clf.save_model(MODEL_NAME)
 
-if os.path.getsize(MODEL_PATH) < 1024 * 1024 * UPLOAD_SIZE_THRESHOLD:  # 100 MB
+if os.path.getsize(MODEL_NAME) < 1024 * 1024 * UPLOAD_SIZE_THRESHOLD:  # 100 MB
     print("Uploading serialized model")
-    model_version["serialized_model"].upload(MODEL_PATH)
+    model_version["serialized_model"].upload(str(MODEL_NAME))
 else:
     print(
         f"Model is larger than UPLOAD_SIZE_THRESHOLD ({UPLOAD_SIZE_THRESHOLD} MB). Tracking pointer to model file"
     )
-    model_version["serialized_model"].track_files(os.path.relpath(MODEL_PATH))
+    model_version["serialized_model"].track_files(os.path.relpath(MODEL_NAME))
 
 
 # (neptune) Log model properties to model_version
@@ -365,6 +371,7 @@ run["test/metrics/recall"] = model_version["metrics/recall"] = recall
 run["test/metrics/f1_score"] = model_version["metrics/f1_score"] = f1_score
 
 print(classification_report(y_test, preds, zero_division=0))
+
 
 # (neptune) Log each metric in its separate nested namespace
 run["test/metrics/classification_report"] = classification_report(
