@@ -410,13 +410,4 @@ df_debug.to_csv(csv_buffer, index=False)
 run["test/debug/misclassifications"].upload(File.from_stream(csv_buffer, extension="csv"))
 
 
-# ## Stop model version, model, run, and project
-# [Read the docs](https://docs.neptune.ai/api-reference/project#.stop)
-
-model_version.stop()
-model.stop()
-run.stop()
-project.stop()
-
-
 # (neptune) Explore the [project](https://app.neptune.ai/showcase/project-text-classification) in the Neptune app
