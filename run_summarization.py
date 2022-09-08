@@ -249,24 +249,12 @@ def main():
         tokenizer=tokenizer,
         data_collator=data_collator,
         compute_metrics=eval_logger,  # (neptune) pass the eval logger to the trainer
-        callbacks=[neptune_callback],  # (neptune) Pass the callback to the trainer
+        callbacks=[neptune_callback],  # (neptune) pass the callback to the trainer
     )
 
     # Training
     train_result = trainer.train()
     trainer.save_model()  # Saves the tokenizer too for easy upload
-
-    metrics = train_result.metrics
-    max_train_samples = (
-        data_args.max_train_samples
-        if data_args.max_train_samples is not None
-        else len(train_dataset)
-    )
-    metrics["train_samples"] = min(max_train_samples, len(train_dataset))
-
-    trainer.log_metrics("train", metrics)
-    trainer.save_metrics("train", metrics)
-    trainer.save_state()
 
 
 if __name__ == "__main__":
