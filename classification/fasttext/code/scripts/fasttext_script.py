@@ -135,7 +135,7 @@ df_fasttext_raw = df_raw[["case_outcome", "case_text"]]
 df_fasttext_raw["label"] = "__label__" + df_fasttext_raw.case_outcome.str.replace(" ", "_")
 df_fasttext_raw = df_fasttext_raw[["label", "case_text"]]
 
-DATASET_PATH_LOCAL = path.cwd().parent.parent.parent.joinpath("data")
+DATASET_PATH_LOCAL = path.cwd().parent.parent.joinpath("data")
 
 if not os.path.exists(DATASET_PATH_LOCAL):
     os.makedirs(DATASET_PATH_LOCAL)
@@ -356,7 +356,7 @@ clf = fasttext.train_supervised(
 # Similar to artifact tracking in a project/run, you can also track a pointer to the model in the model registry, or upload the entire serialized model object as well.
 # [Read the docs](https://docs.neptune.ai/how-to-guides/model-registry/creating-model-versions)
 
-MODEL_PATH = path.cwd().parent.parent.parent.joinpath("models")
+MODEL_PATH = path.cwd().parent.parent.joinpath("models")
 
 if not os.path.exists(MODEL_PATH):
     os.makedirs(MODEL_PATH)
