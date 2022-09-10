@@ -270,13 +270,6 @@ def objective_with_logging(trial: optuna.trial.Trial) -> int:
     # (neptune) run training and calculate the score for this parameter configuration
     preds = [clf.predict(text)[0][0] for text in X_valid.values]
 
-    run_trial_level["validation/metrics/classification_report"] = classification_report(
-        y_valid,
-        preds,
-        output_dict=True,
-        zero_division=0,
-    )
-
     precision, recall, f1_score, _ = precision_recall_fscore_support(
         y_valid,
         preds,
