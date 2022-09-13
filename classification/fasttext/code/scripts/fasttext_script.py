@@ -3,7 +3,7 @@
 
 # # Text classification using fastText and Optuna with Neptune tracking
 
-# ## [Neptune] Install the neptune-notebooks widget
+# ## (Neptune) Install the neptune-notebooks widget
 # The neptune-notebooks jupyter extension lets you version, manage and share notebook checkpoints in your projects, without leaving your notebook.
 # [Read the docs](https://docs.neptune.ai/integrations-and-supported-tools/ide-and-notebooks/jupyter-lab-and-jupyter-notebook)
 
@@ -37,8 +37,8 @@ path = Path()
 
 # ### Set parameters
 
-N_JOBS = 4
-N_TRIALS = 10
+N_JOBS = 2
+N_TRIALS = 1
 UPLOAD_SIZE_THRESHOLD = 300  # in MB
 
 # ### Load input files
@@ -49,7 +49,7 @@ df_raw = pd.read_csv(f"{DATASET_PATH_S3}/legal_text_classification.csv")
 df_raw.dropna(subset=["case_text"], inplace=True)
 df_raw.drop_duplicates(subset="case_text", inplace=True)
 
-# ## [Neptune] Initialize a neptune project
+# ## (Neptune) Initialize a neptune project
 # A project is a collection of runs, models, and other metadata created by project members. Typically you should create one project per machine learning task, to make it easy to compare runs that are connected to building certain kinds of ML model.
 # [Read the docs](https://docs.neptune.ai/you-should-know/core-concepts#project)
 
@@ -60,17 +60,17 @@ PROJECT_NAME = "project-text-classification"
 
 project = neptune.init_project(name=f"{WORKSPACE_NAME}/{PROJECT_NAME}")
 
-# ## [Neptune] Log project level metadata
+# ## (Neptune) Log project level metadata
 # All metadata common across all runs in a project (for example - input and configuration files) should be logged at the project level itself for easier management
 
-# ### [Neptune] Version and track datasets
+# ### (Neptune) Version and track datasets
 # Neptune lets you track pinters to datasets, models, and other artifacts stored locally or in S3.
 # [Read the docs](https://docs.neptune.ai/how-to-guides/data-versioning)
 
 project["data/files"].track_files(str(DATASET_PATH_S3))
 
 
-# ### [Neptune] Log dataset sample
+# ### (Neptune) Log dataset sample
 # Smaller artifacts can also be uploaded directly to Neptune.
 # [Read the docs](https://docs.neptune.ai/you-should-know/what-can-you-log-and-display#files)
 
@@ -80,8 +80,8 @@ csv_buffer = StringIO()
 df_raw.sample(100).to_csv(csv_buffer, index=False)
 project["data/sample"].upload(File.from_stream(csv_buffer, extension="csv"))
 
-# ### [Neptune] Log metadata plots
-# Similar to other articats, you can also upload images and plot objects to Neptune.
+# ### (Neptune) Log metadata plots
+# Similar to other artifacts, you can also upload images and plot objects to Neptune.
 # [Read the docs](https://docs.neptune.ai/you-should-know/what-can-you-log-and-display#images)
 
 fig = df_raw.case_outcome.value_counts().plot(kind="bar")
@@ -179,7 +179,7 @@ df_train.to_csv(DATASET_PATH_LOCAL_FASTTEXT.joinpath("train.txt"), **TO_CSV_KWAR
 df_valid.to_csv(DATASET_PATH_LOCAL_FASTTEXT.joinpath("valid.txt"), **TO_CSV_KWARGS)
 df_test.to_csv(DATASET_PATH_LOCAL_FASTTEXT.joinpath("test.txt"), **TO_CSV_KWARGS)
 
-# ## [Neptune] Initialize an optuna study-level run
+# ## (Neptune) Initialize an optuna study-level run
 # A run is a namespace inside a project where you log metadata. Typically, you create a run every time you execute a script that does model training, re-training, or inference.
 # [Read the docs](https://docs.neptune.ai/you-should-know/core-concepts#run)
 
@@ -190,7 +190,7 @@ run = neptune.init_run(
     tags=["fasttext", "optuna", "study-level", "notebook", "sagemaker"],
 )
 
-# ### [Neptune] Track run-specific files
+# ### (Neptune) Track run-specific files
 # These are the files which are created during the run, and should be tracked within the run and not the project.
 # [Read the docs](https://docs.neptune.ai/how-to-guides/data-versioning/compare-datasets#step-2-add-tracking-of-the-dataset-version)
 
@@ -201,7 +201,7 @@ csv_buffer = StringIO()
 df_fasttext_raw.sample(100).to_csv(csv_buffer, index=False)
 run["data/sample"].upload(File.from_stream(csv_buffer, extension="csv"))
 
-# ### [Neptune] Log metadata to run
+# ### (Neptune) Log metadata to run
 # You can log nested dictionaries to create custom nested namespaces.
 # [Read the docs](https://docs.neptune.ai/you-should-know/logging-metadata)
 
@@ -212,7 +212,7 @@ metadata = {
 
 run["data/metadata"] = metadata
 
-# ### [Neptune] Log sweep and trial parameters
+# ### (Neptune) Log sweep and trial parameters
 # Neptune's Optuna integration lets you log metadata from both the study-level and trial-level runs.
 # [Read the docs](https://docs.neptune.ai/integrations-and-supported-tools/hyperparameter-optimization/optuna)
 
@@ -246,7 +246,7 @@ def objective_with_logging(trial: optuna.trial.Trial) -> int:
         "t": trial.suggest_float("t", 0.00001, 0.1, log=True),
     }
 
-    # (neptune) create a trial-level Run
+    # (Neptune) create a trial-level Run
     run_trial_level = neptune.init_run(
         project=f"{WORKSPACE_NAME}/{PROJECT_NAME}",
         name="Fasttext text classification",
@@ -254,20 +254,21 @@ def objective_with_logging(trial: optuna.trial.Trial) -> int:
         tags=["fasttext", "optuna", "trial-level", "notebook", "sagemaker"],
     )
 
-    # (neptune) log sweep id to trial-level Run
+    # (Neptune) log sweep id to trial-level Run
     run_trial_level["sweep_id"] = sweep_id
 
-    # (neptune) log parameters of a trial-level Run
+    # train model with chosen hyperparameters
     clf = fasttext.train_supervised(
         input=str(DATASET_PATH_LOCAL_FASTTEXT.joinpath("train.txt")),
         verbose=0,
         **params,
     )
 
+    # (Neptune) log parameters of a trial-level Run
     properties = {k: v for k, v in vars(clf).items() if k not in ["_words", "f"]}
     run_trial_level["model/properties"] = properties
 
-    # (neptune) run training and calculate the score for this parameter configuration
+    # make predictions and calculate metrics
     preds = [clf.predict(text)[0][0] for text in X_valid.values]
 
     precision, recall, f1_score, _ = precision_recall_fscore_support(
@@ -277,16 +278,18 @@ def objective_with_logging(trial: optuna.trial.Trial) -> int:
         zero_division=0,
     )
 
+    # (Neptune) log metrics for current hyperparameters
     run_trial_level["validation/metrics/precision"] = precision
     run_trial_level["validation/metrics/recall"] = recall
     run_trial_level["validation/metrics/f1_score"] = f1_score
 
-    # (neptune) stop trial-level Run
+    # (Neptune) stop trial-level Run
     run_trial_level.stop()
 
     return f1_score
 
 
+# #### (Neptune) Create the Neptune callback for Optuna and pass it to the Optuna study object
 import neptune.new.integrations.optuna as optuna_utils
 
 neptune_callback = optuna_utils.NeptuneCallback(run)
@@ -299,7 +302,7 @@ study.optimize(
     n_jobs=N_JOBS,
 )
 
-# ### [Neptune] Register a model
+# ### (Neptune) Register a model
 # With Neptune's model registry, you can store your ML models in a central location and collaboratively manage their lifecycle.
 # [Read the docs](https://docs.neptune.ai/how-to-guides/model-registry)
 
@@ -310,7 +313,7 @@ model = neptune.init_model(
     project=f"{WORKSPACE_NAME}/{PROJECT_NAME}",
 )
 
-# #### [Neptune] Create a new model version
+# #### (Neptune) Create a new model version
 # For each model, you can create different versions as you refine the model.
 # [Read the docs](https://docs.neptune.ai/how-to-guides/model-registry/creating-model-versions)
 
@@ -319,7 +322,7 @@ model_version = neptune.init_model_version(
     model=model.get_structure()["sys"]["id"].fetch(),
 )
 
-# #### [Neptune] Associate model version to run and vice-versa
+# #### (Neptune) Associate model version to run and vice-versa
 # This is to help find the model created by the run in the runs table, and the run which created the model in the models table.
 
 run_dict = {
@@ -345,7 +348,7 @@ clf = fasttext.train_supervised(
     **study.best_params,
 )
 
-# #### [Neptune] Upload serialized model to model registry
+# #### (Neptune) Upload serialized model to model registry
 # Similar to artifact tracking in a project/run, you can also track a pointer to the model in the model registry, or upload the entire serialized model object as well.
 # [Read the docs](https://docs.neptune.ai/how-to-guides/model-registry/creating-model-versions)
 
@@ -368,7 +371,7 @@ else:
     )
     model_version["serialized_model"].track_files(os.path.relpath(MODEL_NAME))
 
-# #### [Neptune] Log model properties to model_version
+# #### (Neptune) Log model properties to model_version
 # Neptune dynamically creates nested namespaces based on the dictionary structure.
 
 properties = {k: v for k, v in vars(clf).items() if k not in ["_words", "f"]}
@@ -381,7 +384,7 @@ preds = [clf.predict(text)[0][0] for text in X_test.values]
 
 df_test["prediction"] = preds
 
-# ### [Neptune] Log parameters, metrics and debugging information to run and model version
+# ### (Neptune) Log parameters, metrics and debugging information to run and model version
 
 precision, recall, f1_score, _ = precision_recall_fscore_support(
     y_test,
@@ -398,12 +401,12 @@ run["test/metrics/f1_score"] = model_version["metrics/f1_score"] = f1_score
 
 print(classification_report(y_test, preds, zero_division=0))
 
-# (neptune) Log each metric in its separate nested namespace
+# (Neptune) Log each metric in its separate nested namespace
 run["test/metrics/classification_report"] = classification_report(
     y_test, preds, output_dict=True, zero_division=0
 )
 
-# (neptune) Log classification report as an HTML dataframe
+# (Neptune) Log classification report as an HTML dataframe
 df_clf_rpt = pd.DataFrame(classification_report(y_test, preds, output_dict=True, zero_division=0)).T
 run["test/metrics/classification_report/report"].upload(File.as_html(df_clf_rpt))
 
@@ -423,7 +426,7 @@ fig.update_layout(title="Actual vs Prediction", barmode="group")
 
 run["test/debug/plots/prediction_distribution"].upload(fig)
 
-# ### [Neptune] Log misclassified results
+# ### (Neptune) Log misclassified results
 # CSV files logged to Neptune will be rendered as an interactive table.
 # [Read the docs](https://docs.neptune.ai/you-should-know/what-can-you-log-and-display#csv-files)
 
@@ -434,4 +437,4 @@ csv_buffer = StringIO()
 df_debug.to_csv(csv_buffer, index=False)
 run["test/debug/misclassifications"].upload(File.from_stream(csv_buffer, extension="csv"))
 
-# ## [Neptune] Explore the [project](https://app.neptune.ai/showcase/project-text-classification) in the Neptune app
+# ## (Neptune) Explore the [project](https://app.neptune.ai/showcase/project-text-classification) in the Neptune app
