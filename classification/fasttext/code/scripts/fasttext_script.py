@@ -257,17 +257,18 @@ def objective_with_logging(trial: optuna.trial.Trial) -> int:
     # (neptune) log sweep id to trial-level Run
     run_trial_level["sweep_id"] = sweep_id
 
-    # (neptune) log parameters of a trial-level Run
+    # train model on selected hyperparams
     clf = fasttext.train_supervised(
         input=str(DATASET_PATH_LOCAL_FASTTEXT.joinpath("train.txt")),
         verbose=0,
         **params,
     )
 
+    # (neptune) log parameters of a trial-level Run
     properties = {k: v for k, v in vars(clf).items() if k not in ["_words", "f"]}
     run_trial_level["model/properties"] = properties
 
-    # (neptune) run training and calculate the score for this parameter configuration
+    # make predictions and calculate metrics
     preds = [clf.predict(text)[0][0] for text in X_valid.values]
 
     precision, recall, f1_score, _ = precision_recall_fscore_support(
@@ -277,6 +278,7 @@ def objective_with_logging(trial: optuna.trial.Trial) -> int:
         zero_division=0,
     )
 
+    # (neptune) run training and calculate the score for this parameter configuration
     run_trial_level["validation/metrics/precision"] = precision
     run_trial_level["validation/metrics/recall"] = recall
     run_trial_level["validation/metrics/f1_score"] = f1_score
@@ -287,6 +289,7 @@ def objective_with_logging(trial: optuna.trial.Trial) -> int:
     return f1_score
 
 
+# (neptune) create the Neptune callback for Optuna
 import neptune.new.integrations.optuna as optuna_utils
 
 neptune_callback = optuna_utils.NeptuneCallback(run)
@@ -359,7 +362,7 @@ from datetime import datetime
 MODEL_NAME = str(MODEL_PATH.joinpath(f"fasttext_{datetime.now().strftime('%Y%m%d%H%M%S')}.bin"))
 clf.save_model(MODEL_NAME)
 
-if os.path.getsize(MODEL_NAME) < 1024 * 1024 * UPLOAD_SIZE_THRESHOLD:  # 100 MB
+if os.path.getsize(MODEL_NAME) < 1024 * 1024 * UPLOAD_SIZE_THRESHOLD:
     print("Uploading serialized model")
     model_version["serialized_model"].upload(str(MODEL_NAME))
 else:
@@ -395,8 +398,6 @@ print(f"Precision: {precision}\nRecall: {recall}\nF1-score: {f1_score}")
 run["test/metrics/precision"] = model_version["metrics/precision"] = precision
 run["test/metrics/recall"] = model_version["metrics/recall"] = recall
 run["test/metrics/f1_score"] = model_version["metrics/f1_score"] = f1_score
-
-print(classification_report(y_test, preds, zero_division=0))
 
 # (neptune) Log each metric in its separate nested namespace
 run["test/metrics/classification_report"] = classification_report(
