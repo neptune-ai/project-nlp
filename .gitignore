@@ -128,5 +128,14 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Neptune files
-*.neptune
+# VSCode
+.vscode
+
+# Neptune
+.neptune
+
+# Data
+**data/
+
+# Models
+**.bin
