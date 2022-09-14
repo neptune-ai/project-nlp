@@ -1,13 +1,13 @@
 python run_summarization.py \
     --s3_path "s3://neptune-examples/data/samsum/data_v1/" \
     --learning_rate 5e-4 \
-    --num_train_epochs 1 \
+    --num_train_epochs 3 \
     --max_target_length 100 \
     --model_name_or_path t5-small \
     --dataset_name samsum \
     --dataset_config samsum \
     --report_to "none" \
-    --output_dir /tmp/tst-summarization \
+    --output_dir "../models/" \
     --per_device_train_batch_size=16 \
     --per_device_eval_batch_size=2 \
     --overwrite_output_dir \

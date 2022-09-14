@@ -157,18 +157,19 @@ def main():
     run = neptune.init_run()
 
     # (neptune) Track S3 data
+    DATA_DIR = "../data/"
     run["data"].track_files(data_args.s3_path)
     run.wait()
-    run["data"].download("data/")
+    run["data"].download(DATA_DIR)
 
     # Set seed before initializing model.
     set_seed(training_args.seed)
 
     # Set up dataset
     data_files = {}
-    data_files["train"] = "./data/train.jsonl"
+    data_files["train"] = DATA_DIR + "train.jsonl"
     extension = "json"
-    data_files["validation"] = "./data/val.jsonl"
+    data_files["validation"] = DATA_DIR + "val.jsonl"
     extension = "json"
     raw_datasets = load_dataset(
         extension,
