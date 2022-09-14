@@ -13,6 +13,7 @@ import nltk  # Here to have a nice missing dependency error message early on
 import numpy as np
 import pandas as pd
 import transformers
+from arg_parsers import DataTrainingArguments, ModelArguments
 from datasets import load_dataset
 from filelock import FileLock
 from neptune.new.types import File
@@ -32,8 +33,6 @@ from transformers import (
 )
 from transformers.utils import check_min_version, is_offline_mode
 from transformers.utils.versions import require_version
-
-from arg_parsers import DataTrainingArguments, ModelArguments
 from utils import get_dataset
 
 metric = evaluate.load("rouge")
