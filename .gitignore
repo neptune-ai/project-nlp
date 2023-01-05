@@ -138,4 +138,6 @@ dmypy.json
 **data/
 
 # Models
-**.bin
+**models/
+**.h5
+**checkpoint
