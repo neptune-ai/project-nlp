@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# Text classification using Keras with Neptune tracking
+#########################################################
+# Text classification using Keras with Neptune tracking #
+#########################################################
+
 # Script inspired from https://keras.io/examples/nlp/text_classification_from_scratch/
 
-import os
+#########
+# Setup #
+#########
 
-# Setup
+import os
 import random
 import re
 import string
@@ -24,7 +29,9 @@ os.environ["NEPTUNE_PROJECT"] = "showcase/project-text-classification"
 
 project = neptune.init_project()
 
-# Data preparation
+####################
+# Data preparation #
+####################
 # We are using the IMDB sentiment analysis data available at https://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz. For the purposes of this demo, we've uploaded this data to S3 at https://neptune-examples.s3.us-east-2.amazonaws.com/data/text-classification/aclImdb_v1.tar.gz and will be downloading it from there.
 
 # (Neptune) Track datasets using Neptune
@@ -129,7 +136,9 @@ train_ds = train_ds.cache().prefetch(buffer_size=10)
 val_ds = val_ds.cache().prefetch(buffer_size=10)
 test_ds = test_ds.cache().prefetch(buffer_size=10)
 
-# Modelling
+#############
+# Modelling #
+#############
 
 # (Neptune) Create a new model and model version
 
@@ -215,7 +224,9 @@ model_version["model_weights"].upload("model_weights.h5")
 
 model_version.sync()
 
-# (Neptune) Promote best model to production
+##############################################
+# (Neptune) Promote best model to production #
+##############################################
 
 # (Neptune) Fetch current production model
 
