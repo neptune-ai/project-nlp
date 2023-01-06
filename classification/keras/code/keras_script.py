@@ -96,10 +96,8 @@ print(f"Number of batches in raw_val_ds: {raw_val_ds.cardinality()}")
 print(f"Number of batches in raw_test_ds: {raw_test_ds.cardinality()}")
 
 
-# Clean data
-
-
 def custom_standardization(input_data):
+    """Clean data"""
     lowercase = tf.strings.lower(input_data)
     stripped_html = tf.strings.regex_replace(lowercase, "<br />", " ")
     return tf.strings.regex_replace(stripped_html, f"[{re.escape(string.punctuation)}]", "")
@@ -114,8 +112,6 @@ vectorize_layer = TextVectorization(
 
 text_ds = raw_train_ds.map(lambda x, y: x)
 vectorize_layer.adapt(text_ds)
-
-# Vectorize data
 
 
 def vectorize_text(text, label):
