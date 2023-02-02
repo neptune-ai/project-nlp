@@ -58,7 +58,7 @@ import neptune.new as neptune
 WORKSPACE_NAME = "showcase"
 PROJECT_NAME = "project-text-classification"
 
-project = neptune.init_project(name=f"{WORKSPACE_NAME}/{PROJECT_NAME}")
+project = neptune.init_project(project=f"{WORKSPACE_NAME}/{PROJECT_NAME}")
 
 # ## (Neptune) Log project level metadata
 # All metadata common across all runs in a project (for example - input and configuration files) should be logged at the project level itself for easier management
@@ -67,7 +67,7 @@ project = neptune.init_project(name=f"{WORKSPACE_NAME}/{PROJECT_NAME}")
 # Neptune lets you track pinters to datasets, models, and other artifacts stored locally or in S3.
 # [Read the docs](https://docs.neptune.ai/how-to-guides/data-versioning)
 
-project["data/files"].track_files(str(DATASET_PATH_S3))
+project["fasttext/data/files"].track_files(DATASET_PATH_S3)
 
 
 # ### (Neptune) Log dataset sample
@@ -78,7 +78,7 @@ from neptune.new.types import File
 
 csv_buffer = StringIO()
 df_raw.sample(100).to_csv(csv_buffer, index=False)
-project["data/sample"].upload(File.from_stream(csv_buffer, extension="csv"))
+project["fasttext/data/sample"].upload(File.from_stream(csv_buffer, extension="csv"))
 
 # ### (Neptune) Log metadata plots
 # Similar to other artifacts, you can also upload images and plot objects to Neptune.
@@ -112,7 +112,7 @@ def clean_text(df: pd.DataFrame, col: str) -> pd.DataFrame:
 
     tqdm.pandas()
     stop = set(stopwords.words("english"))
-    pat = r"\b(?:{})\b".format("|".join(stop))
+    pat = f'\b(?:{"|".join(stop)})\b'
 
     _df = df.copy()
     _df[col] = (
@@ -224,7 +224,7 @@ print(f"Optuna sweep-id: {sweep_id}")
 run["study/sweep_id"] = sweep_id
 
 
-def objective_with_logging(trial: optuna.trial.Trial) -> int:
+def objective_with_logging(trial: optuna.trial.Trial) -> float64:
     """Optuna objective function with inbuilt Neptune tracking
 
     Args:
@@ -307,7 +307,7 @@ study.optimize(
 # [Read the docs](https://docs.neptune.ai/how-to-guides/model-registry)
 
 model = neptune.init_model(
-    model="TXTCLF-FTXT",  # Reinitializing an existing model
+    with_id="TXTCLF-FTXT",  # Reinitializing an existing model
     # name="fasttext", # Required only for new models
     # key="FTXT", # Required only for new models
     project=f"{WORKSPACE_NAME}/{PROJECT_NAME}",
@@ -328,7 +328,7 @@ model_version = neptune.init_model_version(
 run_dict = {
     "id": run.get_structure()["sys"]["id"].fetch(),
     "name": run.get_structure()["sys"]["name"].fetch(),
-    "url": run.get_run_url(),
+    "url": run.get_url(),
 }
 
 model_version["run"] = run_dict
@@ -364,7 +364,7 @@ clf.save_model(MODEL_NAME)
 
 if os.path.getsize(MODEL_NAME) < 1024 * 1024 * UPLOAD_SIZE_THRESHOLD:  # 100 MB
     print("Uploading serialized model")
-    model_version["serialized_model"].upload(str(MODEL_NAME))
+    model_version["serialized_model"].upload(MODEL_NAME)
 else:
     print(
         f"Model is larger than UPLOAD_SIZE_THRESHOLD ({UPLOAD_SIZE_THRESHOLD} MB). Tracking pointer to model file"

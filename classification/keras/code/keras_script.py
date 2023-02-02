@@ -37,7 +37,7 @@ project = neptune.init_project()
 # (Neptune) Track datasets using Neptune
 # Since this dataset will be used among all the runs in the project, we track it at the project level
 
-project["data/keras/files"].track_files(
+project["keras/data/files"].track_files(
     "s3://neptune-examples/data/text-classification/aclImdb_v1.tar.gz"
 )
 project.sync()
@@ -45,7 +45,7 @@ project.sync()
 # (Neptune) Download files from S3 using Neptune
 
 print("Downloading data...")
-project["data/keras/files"].download("..")
+project["keras/data/files"].download("..")
 
 # Prepare data
 
@@ -54,7 +54,7 @@ utils.prep_data(imdb_folder="../aclImdb", dest_path="../data")
 
 # (Neptune) Upload dataset sample to Neptune project
 
-base_namespace = "data/keras/sample/"
+base_namespace = "keras/data/sample/"
 
 project[base_namespace]["train/pos"].upload(
     f"../data/train/pos/{random.choice(os.listdir('../data/train/pos'))}"
@@ -142,7 +142,7 @@ test_ds = test_ds.cache().prefetch(buffer_size=10)
 
 # (Neptune) Create a new model and model version
 
-project_key = project.get_structure()["sys"]["id"].fetch()
+project_key = project["sys/id"].fetch()
 
 try:
     model = neptune.init_model(name="keras", key="KER")
@@ -194,8 +194,8 @@ _, curr_model_acc = keras_model.evaluate(test_ds, callbacks=neptune_callback)
 # (Neptune) Associate run with model and vice-versa
 
 run_meta = {
-    "id": run.get_structure()["sys"]["id"].fetch(),
-    "name": run.get_structure()["sys"]["name"].fetch(),
+    "id": run["sys/id"].fetch(),
+    "name": run["sys/name"].fetch(),
     "url": run.get_url(),
 }
 
@@ -204,8 +204,8 @@ print(run_meta)
 model_version["run"] = run_meta
 
 model_version_meta = {
-    "id": model_version.get_structure()["sys"]["id"].fetch(),
-    "name": model_version.get_structure()["sys"]["name"].fetch(),
+    "id": model_version["sys/id"].fetch(),
+    "name": model_version["sys/name"].fetch(),
     "url": model_version.get_url(),
 }
 
