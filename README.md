@@ -1,6 +1,7 @@
 # Project-NLP
 
-Example NLP project for the following use cases:
+> **Warning** This repository has been archived
 
-* Text classification --> [Explore project in the app](https://app.neptune.ai/showcase/project-text-classification)
-* Text summarization --> [Explore project in the app](https://app.neptune.ai/showcase/project-text-summarization-hf)
+
+You can find the updated NLP examples with neptune.ai here -->   
+https://github.com/neptune-ai/examples/tree/main/use-cases/nlp
